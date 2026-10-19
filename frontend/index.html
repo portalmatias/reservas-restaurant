@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reservas</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: grid; gap: .5rem; margin-bottom: 2rem; }
+    input, button { padding: .5rem; font-size: 1rem; }
+    li { margin-bottom: .5rem; }
+    #error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Reservas del restaurant</h1>
+
+  <form id="form">
+    <input name="nombreCliente" placeholder="Nombre" required />
+    <input name="telefono" placeholder="Teléfono" required />
+    <input name="cantidadPersonas" type="number" min="1" placeholder="Personas" required />
+    <input name="fecha" type="datetime-local" required />
+    <button>Reservar</button>
+  </form>
+
+  <p id="error"></p>
+  <ul id="lista"></ul>
+
+  <script>
+    const API = "http://localhost:4000/reservas";
+    const lista = document.getElementById("lista");
+    const errorEl = document.getElementById("error");
+
+    async function cargar() {
+      try {
+        const res = await fetch(API);
+        const reservas = await res.json();
+        lista.innerHTML = "";
+        for (const r of reservas) {
+          const li = document.createElement("li");
+          const fecha = new Date(r.fecha).toLocaleString("es-AR");
+          li.textContent = `${r.nombreCliente} - ${r.cantidadPersonas} personas - ${fecha} - ${r.estado}`;
+          lista.appendChild(li);
+        }
+        errorEl.textContent = "";
+      } catch (e) {
+        errorEl.textContent = "No se pudo conectar con la API. ¿Está corriendo el servidor?";
+      }
+    }
+
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const datos = Object.fromEntries(new FormData(e.target));
+      datos.cantidadPersonas = Number(datos.cantidadPersonas);
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datos),
+        });
+        if (!res.ok) throw new Error();
+        e.target.reset();
+        cargar();
+      } catch {
+        errorEl.textContent = "No se pudo crear la reserva.";
+      }
+    });
+
+    cargar();
+  </script>
+</body>
+</html>
